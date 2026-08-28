@@ -1,0 +1,10 @@
+Analyze the image for camouflaged objects. Identify the foreground object using a coarse-to-fine category chain, identify the background category, and give one bounding box for each camouflaged object.
+
+Return only valid JSON in this format:
+{
+  "camouflaged_target_category": ["coarse category -> fine category"],
+  "image_background_category": "background category",
+  "location_of_camouflaged_target": {"bboxes": [[x_min, y_min, x_max, y_max]]}
+}
+
+Use pixel coordinates in the original image. If there is no camouflaged object, return an empty category list and empty bounding-box list.
