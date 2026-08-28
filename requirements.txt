@@ -1,0 +1,10 @@
+torch
+torchvision
+transformers
+accelerate
+qwen-vl-utils
+Pillow
+numpy
+opencv-python
+tqdm
+
