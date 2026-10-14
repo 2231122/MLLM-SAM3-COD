@@ -67,7 +67,10 @@ def main() -> None:
         image_root.mkdir(parents=True, exist_ok=True)
         state = processor.set_image(Image.open(image_path).convert("RGB"))
         foreground, background = [], []
-        for idx, category in enumerate(category_chain_terms(annotation)):
+        foreground_terms = category_chain_terms(annotation)
+        if "animal" not in {term.lower() for term in foreground_terms}:
+            foreground_terms.append("Animal")
+        for idx, category in enumerate(foreground_terms):
             for suffix in ("", " Camouflaged"):
                 prompt = f"{category}{suffix}"
                 prediction = processor.set_text_prompt(state=state.copy(), prompt=prompt)

@@ -127,7 +127,10 @@ def segment_categories(processor, image: Image.Image, categories: list[str], res
     """Run every foreground category through the SAM3 logits branch and binarize it."""
     state = processor.set_image(image)
     masks, prompts = [], []
-    for term in category_chain_terms({"camouflaged_target_category": categories}):
+    terms = category_chain_terms({"camouflaged_target_category": categories})
+    if "animal" not in {term.lower() for term in terms}:
+        terms.append("Animal")
+    for term in terms:
         for suffix in ("", " Camouflaged"):
             prompt = f"{term}{suffix}"
             mask = save_sam3_mask(processor.set_text_prompt(state=state.copy(), prompt=prompt), result_dir / f"{prefix}_{len(masks) + 1}.png")
@@ -180,12 +183,9 @@ def main() -> None:
 
     library_path = Path(args.sgdc_dir) / "category_library.txt"
     library = library_path.read_text(encoding="utf-8") if library_path.exists() else ""
-    category_prompt = (
-        "This image contains numbered contour hints for possible camouflaged animals. "
-        "Use them only as weak spatial evidence. Infer the camouflaged animal categories. "
-        f"Previously confirmed category examples:\n{library[:6000]}\n"
-        "Return only JSON: {\"camouflaged_target_category_inferred\": [\"coarse\", \"fine\"]}."
-    )
+    prompt_root = Path(__file__).parent / "prompts"
+    category_prompt = (prompt_root / "sgri_category_reasoning.txt").read_text(encoding="utf-8").replace("{category_library}", library[:6000])
+    selection_prompt = (prompt_root / "sgri_mask_selection.txt").read_text(encoding="utf-8")
 
     for image_name in tqdm(sorted(hard), desc="SGRI"):
         image_path = Path(args.image_dir) / image_name
@@ -244,11 +244,6 @@ def main() -> None:
         make_contact_sheet(source, final_masks, final_clue)
         mask_grid = result_dir / "mask_grid.png"
         grid_ids = make_mask_grid(final_masks, mask_grid)
-        selection_prompt = (
-            "The first image contains contour hints for a camouflaged animal. The second image is a 2x2 grid of "
-            "candidate segmentation masks indexed as [1, 2; 3, 4]. Select the mask that best represents the animal. "
-            "Return only JSON: {\"best_mask_id\": 1}."
-        )
         try:
             selection = qwen_query(qwen, qwen_processor, process_vision_info, [initial_clue, mask_grid], selection_prompt)
         except (ValueError, json.JSONDecodeError):
